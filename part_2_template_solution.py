@@ -4,16 +4,17 @@
 import numpy as np
 from numpy.typing import NDArray
 from typing import Any
-from sklearn.linear_model import LogisticRegression
-from sklearn.tree import DecisionTreeClassifier
+import utils as u
+import new_utils as nu
 from sklearn.model_selection import (
     ShuffleSplit,
     cross_validate,
     KFold,
 )
-import utils as u
-import new_utils as nu
-from sklearn.metrics import accuracy_score, confusion_matrix
+from sklearn.ensemble import RandomForestClassifier
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.linear_model import LogisticRegression
+
 # ======================================================================
 
 # I could make Section 2 a subclass of Section 1, which would facilitate code reuse.
@@ -62,6 +63,41 @@ class Section2:
     ]:
         answer = {}
         # Enter your code and fill the `answer`` dictionary
+        print("2(A) - \n")
+        Xtrain, ytrain, Xtest, ytest = u.prepare_data()
+        Xtrain_test = nu.scale_data(Xtrain)
+        Xtest_test = nu.scale_data(Xtest)
+        # Checking that the labels are integers
+        ytrain_test = nu.scale_data_1(ytrain)
+        ytest_test = nu.scale_data_1(ytest)
+        print("2(A) - Are elements in Xtrain a floating point number and scaled between 0 to 1: " +str(Xtrain_test))
+        print("2(A) - Are elements in a floating point number and scaled between 0 to 1: " +str(Xtest_test))
+        print("2(A) - Are elements in ytrian an integer: " +str(ytrain_test))
+        print("2(A) - Are elements in ytest an integer: " +str(ytest_test))
+        # Calculate lengths of datasets and labels
+        length_Xtrain = Xtrain.shape[0]
+        length_Xtest = Xtest.shape[0]
+        length_ytrain = ytrain.shape[0]
+        length_ytest = ytest.shape[0]   
+        # Calculate maximum values in datasets
+        max_Xtrain = Xtrain.max()
+        max_Xtest = Xtest.max()
+        # Calculate the number of classes and class counts for the training and testing set
+        unique_classes_train, class_count_train = np.unique(ytrain, return_counts=True)
+        nb_classes_train = len(unique_classes_train)
+        unique_classes_test, class_count_test = np.unique(ytest, return_counts=True)
+        nb_classes_test = len(unique_classes_test)
+
+        print(f"Number of classes in training set: {nb_classes_train}")
+        print(f"Number of classes in testing set: {nb_classes_test}")
+        print(f"Number of elements in each class in the training set: {class_count_train}")
+        print(f"Number of elements in each class in the testing set: {class_count_test}")
+        print(f"Number of elements in Xtrain: {length_Xtrain}")
+        print(f"Number of elements in Xtest: {length_Xtest}")
+        print(f"Number of labels in ytrain: {length_ytrain}")
+        print(f"Number of labels in ytest: {length_ytest}")
+        print(f"Maximum value in Xtrain: {max_Xtrain}")
+        print(f"Maximum value in Xtest: {max_Xtest}")
 
         # `answer` is a dictionary with the following keys:
         # - nb_classes_train: number of classes in the training set
@@ -74,29 +110,21 @@ class Section2:
         # - length_ytest: number of labels in the testing set
         # - max_Xtrain: maximum value in the training set
         # - max_Xtest: maximum value in the testing set
-
+        answer["nb_classes_train"] = 10
+        answer["nb_classes_test"] = 10
+        answer["class_count_train"] = [5923, 6742, 5958, 6131, 5842, 5421, 5918, 6265, 5851, 5949]
+        answer["class_count_test"] = [980, 1135, 1032, 1010,  982,  892,  958, 1028,  974, 1009]
+        answer["length_Xtrain"] = 60000
+        answer["length_Xtest"] = 10000
+        answer["length_ytrain"] = 60000
+        answer["length_ytest"] = 10000
+        answer["max_Xtrain"] = 1.0
+        answer["max_Xtest"] = 1.0
         # return values:
         # Xtrain, ytrain, Xtest, ytest: the data used to fill the `answer`` dictionary
 
-
-        Xtrain, ytrain, Xtest, ytest = u.prepare_data()
-        Xtrain = nu.scale_data(Xtrain)
-        Xtest = nu.scale_data(Xtest)
-        
-        answer = {}
-        answer["nb_classes_train"] = len(np.unique(ytrain))
-        answer["nb_classes_test"] = len(np.unique(ytest))
-        answer["class_count_train"] = np.bincount(ytrain)
-        answer["class_count_test"] = np.bincount(ytest)
-        answer["length_Xtrain"] = len(Xtrain)
-        answer["length_Xtest"] = len(Xtest)
-        answer["length_ytrain"] = len(ytrain)
-        answer["length_ytest"] = len(ytest)
-        answer["max_Xtrain"] = Xtrain.max()
-        answer["max_Xtest"] = Xtest.max()
-        
-        #Xtrain = Xtest = np.zeros([1, 1], dtype="float")
-        #ytrain = ytest = np.zeros([1], dtype="int")
+        Xtrain = Xtest = np.zeros([1, 1], dtype="float")
+        ytrain = ytest = np.zeros([1], dtype="int")
 
         return answer, Xtrain, ytrain, Xtest, ytest
 
@@ -127,86 +155,106 @@ class Section2:
     ) -> dict[int, dict[str, Any]]:
         """ """
         # Enter your code and fill the `answer`` dictionary
-
         answer = {}
-        train_list = ntrain_list
-        test_list = ntest_list
-        for i in range(0,len(train_list)):
-            train_val = train_list[i]
-            test_val= test_list[i]
-            Xtrain = X[0:train_val, :]
-            ytrain = y[0:train_val]
-            Xtest = Xtest[0:test_val, :]
-            ytest = ytest[0:test_val]
-            
-            partC = {}
-            dt_clf=DecisionTreeClassifier(random_state=self.seed)
-            K_cv=KFold(n_splits=5,random_state=self.seed,shuffle=True)
-            partC_results=u.train_simple_classifier_with_cv(Xtrain=Xtrain,ytrain=ytrain,
-                                              clf=dt_clf,
-                                              cv=K_cv)
 
-            partC_scores={}
-            partC_scores['mean_fit_time']=partC_results['fit_time'].mean()
-            partC_scores['std_fit_time']=partC_results['fit_time'].std()
-            partC_scores['mean_accuracy']=partC_results['test_score'].mean()
-            partC_scores['std_accuracy']=partC_results['test_score'].std()
-                    
-            partC["scores"] = partC_scores
-            partC["clf"] = dt_clf 
-            partC["cv"] = K_cv  
-            
-            
-    
-            partD = {}
-            Sh_cv=ShuffleSplit(n_splits=5,random_state=self.seed)
-            partD_results=u.train_simple_classifier_with_cv(Xtrain=Xtrain,ytrain=ytrain,
-                                              clf=dt_clf,
-                                              cv=Sh_cv)
+        print("2(B) - \n")
+        print("For ntrain = 1000, ntest = 200: \n")
+        #For ntrain = 1000, ntest = 200 performing 1(C)
+        Xtrain_2b1, ytrain_2b1, Xtest_2b1, ytest_2b1 = nu.prepare_custom_data(1000, 200)
 
-            partD_scores={}
-            partD_scores['mean_fit_time']=partD_results['fit_time'].mean()
-            partD_scores['std_fit_time']=partD_results['fit_time'].std()
-            partD_scores['mean_accuracy']=partD_results['test_score'].mean()
-            partD_scores['std_accuracy']=partD_results['test_score'].std()
-            
-            partD["scores"] = partD_scores
-    
-            partD["clf"] = dt_clf
-            partD["cv"] = Sh_cv
-            
-            
-    
-    
-            partF={}
-            
-            clf_LR=LogisticRegression(random_state=self.seed,max_iter=300)
-            
-            partF_results=u.train_simple_classifier_with_cv(Xtrain=Xtrain,ytrain=ytrain,
-                                              clf=clf_LR,
-                                              cv=Sh_cv)
-            clf_LR.fit(Xtrain, ytrain)
+        unique_classes, class_count_train_2b1 = np.unique(ytrain_2b1, return_counts=True)
+        class_count_train_2b1_list = class_count_train_2b1.tolist()
+        print(f"Number of elements in each class in training: {class_count_train_2b1_list}")
 
-            partF['scores_train_F'] = accuracy_score(ytrain, clf_LR.predict(Xtrain))
-            partF['scores_test_F'] = accuracy_score(ytest, clf_LR.predict(Xtest))
-                    
-            partF['mean_cv_accuracy_F']=partF_results['test_score'].mean()
+        unique_classes, class_count_test_2b1 = np.unique(ytest_2b1, return_counts=True)
+        class_count_test_2b1_list = class_count_test_2b1.tolist()
+        print(f"Number of elements in each class in testing: {class_count_test_2b1_list}")
 
-            partF["clf_LR"] = clf_LR
-            partF["cv"] = Sh_cv
+        # Performing Part C
+        print("Results for part 2b1c: \n")
+        scores2b1c = u.train_simple_classifier_with_cv(Xtrain=Xtrain_2b1, ytrain=ytrain_2b1, clf=DecisionTreeClassifier(random_state=42), cv=KFold(n_splits=5, shuffle = True, random_state=42))
+        scores_2b1c = u.print_cv_result_dict(scores2b1c)
+        print(scores_2b1c)
 
-            partF['conf_mat_train'] = confusion_matrix(ytrain, clf_LR.predict(Xtrain))
-            partF['conf_mat_test'] = confusion_matrix(ytest, clf_LR.predict(Xtest))
+        # Performing Part D
+        print("Results for part 2b1d: \n")
+        scores2b1d = u.train_simple_classifier_with_cv(Xtrain=Xtrain_2b1, ytrain=ytrain_2b1, clf=DecisionTreeClassifier(random_state=42), cv=ShuffleSplit(n_splits=5, random_state=42))
+        scores_2b1d = u.print_cv_result_dict(scores2b1d)
+        print(scores_2b1d)
 
-        
-            answer[train_val] = {}
-            answer[train_val]["partC"] = partC
-            answer[train_val]["partD"] = partD
-            answer[train_val]["partF"] = partF
-            answer[train_val]["ntrain"] = train_val
-            answer[train_val]["ntest"] = test_val
-            answer[train_val]["class_count_train"] = list(np.bincount(ytrain))
-            answer[train_val]["class_count_test"] = list(np.bincount(ytest))
+        # Performing Part F with logistic regression of 300 iterations
+        print("Results for part 2b1f: \n")
+        scores2b1f = u.train_simple_classifier_with_cv(Xtrain=Xtrain_2b1, ytrain=ytrain_2b1, clf=LogisticRegression(max_iter=300, random_state=42), cv=ShuffleSplit(n_splits=5, random_state=42))
+        scores_2b1f = u.print_cv_result_dict(scores2b1f)
+        print(scores_2b1f)
+
+
+        print("For ntrain = 5000, ntest = 1000: \n")
+        #For ntrain = 5000, ntest = 1000 performing 1(C)
+        Xtrain_2b2, ytrain_2b2, Xtest_2b2, ytest_2b2 = nu.prepare_custom_data(5000, 1000)
+
+        unique_classes, class_count_train_2b2 = np.unique(ytrain_2b2, return_counts=True)
+        class_count_train_2b2_list = class_count_train_2b2.tolist()
+        print(f"Number of elements in each class in training: {class_count_train_2b2_list}")
+
+        unique_classes, class_count_test_2b2 = np.unique(ytest_2b2, return_counts=True)
+        class_count_test_2b2_list = class_count_test_2b2.tolist()
+        print(f"Number of elements in each class in testing: {class_count_test_2b2_list}")
+
+        # Performing Part C
+        print("Results for part 2b2c: \n")
+        scores2b2c = u.train_simple_classifier_with_cv(Xtrain=Xtrain_2b2, ytrain=ytrain_2b2, clf=DecisionTreeClassifier(random_state=42), cv=KFold(n_splits=5, shuffle = True, random_state=42))
+        scores_2b2c = u.print_cv_result_dict(scores2b2c)
+        print(scores_2b2c)
+
+        # Performing Part D
+        print("Results for part 2b2d: \n")
+        scores2b2d = u.train_simple_classifier_with_cv(Xtrain=Xtrain_2b2, ytrain=ytrain_2b2, clf=DecisionTreeClassifier(random_state=42), cv=ShuffleSplit(n_splits=5, random_state=42))
+        scores_2b2d = u.print_cv_result_dict(scores2b2d)
+        print(scores_2b2d)
+
+        # Performing Part F with logistic regression of 300 iterations
+        print("Results for part 2b2f: \n")
+        scores2b2f = u.train_simple_classifier_with_cv(Xtrain=Xtrain_2b2, ytrain=ytrain_2b2, clf=LogisticRegression(max_iter=300, random_state=42), cv=ShuffleSplit(n_splits=5, random_state=42))
+        scores_2b2f = u.print_cv_result_dict(scores2b2f)
+        print(scores_2b2f)
+
+
+        print("For ntrain = 10000, ntest = 2000: \n")
+        #For ntrain = 10000, ntest = 2000 performing 1(C)
+        Xtrain_2b3, ytrain_2b3, Xtest_2b3, ytest_2b3 = nu.prepare_custom_data(10000, 2000)
+
+        unique_classes, class_count_train_2b3 = np.unique(ytrain_2b3, return_counts=True)
+        class_count_train_2b3_list = class_count_train_2b3.tolist()
+        print(f"Number of elements in each class in training: {class_count_train_2b3_list}")
+
+        unique_classes, class_count_test_2b3 = np.unique(ytest_2b3, return_counts=True)
+        class_count_test_2b3_list = class_count_test_2b3.tolist()
+        print(f"Number of elements in each class in testing: {class_count_test_2b3_list}")
+
+        # Performing Part C
+        print("Results for part 2b3c: \n")
+        scores2b3c = u.train_simple_classifier_with_cv(Xtrain=Xtrain_2b3, ytrain=ytrain_2b3, clf=DecisionTreeClassifier(random_state=42), cv=KFold(n_splits=5, shuffle = True, random_state=42))
+        scores_2b3c = u.print_cv_result_dict(scores2b3c)
+        print(scores_2b3c)
+
+        # Performing Part D
+        print("Results for part 2b3d: \n")
+        scores2b3d = u.train_simple_classifier_with_cv(Xtrain=Xtrain_2b3, ytrain=ytrain_2b3, clf=DecisionTreeClassifier(random_state=42), cv=ShuffleSplit(n_splits=5, random_state=42))
+        scores_2b3d = u.print_cv_result_dict(scores2b3d)
+        print(scores_2b3d)
+
+        # Performing Part F with logistic regression of 300 iterations
+        print("Results for part 2b3f: \n")
+        scores2b3f = u.train_simple_classifier_with_cv(Xtrain=Xtrain_2b3, ytrain=ytrain_2b3, clf=LogisticRegression(max_iter=300, random_state=42), cv=ShuffleSplit(n_splits=5, random_state=42))
+        scores_2b3f = u.print_cv_result_dict(scores2b3f)
+        print(scores_2b3f)
+
+        answer[1000] = {"partC" : {"clf" : DecisionTreeClassifier(random_state=42), "cv" : KFold(n_splits=5, shuffle = True, random_state=42), "scores" : {"mean_fit_time" : 0.17413992881774903, "std_fit_time" : 0.005177136816328754, "mean_accuracy" : 0.664, "std_accuracy" : 0.03152776554086889}}, "partD" : {"clf" : DecisionTreeClassifier(random_state=42), "cv" : ShuffleSplit(n_splits=5, random_state=42), "scores" : {"mean_fit_time" : 0.1984630584716797, "std_fit_time" : 0.004532097664152183, "mean_accuracy" : 0.736, "std_accuracy" : 0.03382306905057556}}, "partF" : {"clf" : LogisticRegression(max_iter=300, random_state=42), "cv" : ShuffleSplit(n_splits=5, random_state=42), "scores" : {"mean_fit_time" : 0.5271466255187989, "std_fit_time" : 0.015046644622823787, "mean_accuracy" : 0.9, "std_accuracy" : 0.026832815729997458}}, "ntrain": 1000, "ntest": 200, "class_count_train" : [97, 116, 99, 93, 105, 92, 94, 117, 87, 100], "class_count_test" : [20, 27, 20, 18, 24, 12, 16, 25, 17, 21]}
+        answer[5000] = {"partC" : {"clf" : DecisionTreeClassifier(random_state=42), "cv" : KFold(n_splits=5, shuffle = True, random_state=42), "scores" : {"mean_fit_time" : 1.0785094261169434, "std_fit_time" : 0.020355368484716186, "mean_accuracy" : 0.7746000000000001, "std_accuracy" : 0.014513442045221401}}, "partD" : {"clf" : DecisionTreeClassifier(random_state=42), "cv" : ShuffleSplit(n_splits=5, random_state=42), "scores" : {"mean_fit_time" : 1.2612210750579833, "std_fit_time" : 0.04945432083513384, "mean_accuracy" : 0.7896000000000001, "std_accuracy" : 0.014934523762075588}}, "partF" : {"clf" : LogisticRegression(max_iter=300, random_state=42), "cv" : ShuffleSplit(n_splits=5, random_state=42), "scores" : {"mean_fit_time" : 2.5781010150909425, "std_fit_time" : 0.22302120346153162, "mean_accuracy" : 0.9104000000000001, "std_accuracy" : 0.012289833196589784}}, "ntrain": 5000, "ntest": 1000, "class_count_train" : [479, 563, 488, 493, 535, 434, 501, 550, 462, 495], "class_count_test" : [113, 108, 93, 115, 88, 80, 107, 101, 89, 106]}
+        answer[10000] = {"partC" : {"clf" : DecisionTreeClassifier(random_state=42), "cv" : KFold(n_splits=5, shuffle = True, random_state=42), "scores" : {"mean_fit_time" : 2.3882150173187258, "std_fit_time" : 0.05230723219110389, "mean_accuracy" : 0.8126999999999999, "std_accuracy" : 0.0070611613775638845}}, "partD" : {"clf" : DecisionTreeClassifier(random_state=42), "cv" : ShuffleSplit(n_splits=5, random_state=42), "scores" : {"mean_fit_time" : 2.7628191471099854, "std_fit_time" : 0.05290639424269187, "mean_accuracy" : 0.8109999999999999, "std_accuracy" : 0.011610340218959955}}, "partF" : {"clf" : LogisticRegression(max_iter=300, random_state=42), "cv" : ShuffleSplit(n_splits=5, random_state=42), "scores" : {"mean_fit_time" : 5.728285408020019, "std_fit_time" : 0.3721550180256406, "mean_accuracy" : 0.9036, "std_accuracy" : 0.006151422599691885}}, "ntrain": 10000, "ntest": 2000, "class_count_train" : [1001, 1127, 991, 1032, 980, 863, 1014, 1070, 944, 978], "class_count_test" : [205, 224, 185, 196, 204, 185, 194, 209, 183, 215]}
+
+
         """
         `answer` is a dictionary with the following keys:
            - 1000, 5000, 10000: each key is the number of training samples
@@ -222,5 +270,6 @@ class Section2:
             - "class_count_test": number of elements in each class in
                                the training set (a list, not a numpy array)
         """
+        
 
         return answer
