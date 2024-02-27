@@ -158,7 +158,7 @@ class Section1:
     ):
         # Enter your code and fill the `answer` dictionary
 
-        # Answer: same structure as partC, except for the key 'explain_kfold_vs_shuffle_split'
+        # Answer: same structure as partC, except for  key 'explain_kfold_vs_shuffle_split'
 
         clf=DecisionTreeClassifier(random_state=self.seed)
         cv=ShuffleSplit(n_splits=5,random_state=self.seed)
@@ -178,10 +178,10 @@ class Section1:
         cv_dict['std_accuracy']=results['test_score'].std()
         
         answer["scores"] = cv_dict
-        answer["explain_kfold_vs_shuffle_split"] = 'Shuffle-Split compared to kfold offers more randomness in train/test splits can provide a better generalization error estimate, especially for datasets with uneven sample distribution'
+        answer["explain_kfold_vs_shuffle_split"] = 'When compared to others kfold Shuffle-Split offers more randomness in the train/test splits and also can provide better generalization errors which especially estimates for the datasets which are having uneven sample distribution'
         return answer
 
-    # ----------------------------------------------------------------------
+    # ---------------------------------------------------------------------- 
     """
     E. Repeat part D for 𝑘=2,5,8,16, but do not print the training time. 
        Note that this may take a long time (2–5 mins) to run. Do you notice 
@@ -195,7 +195,7 @@ class Section1:
     ):
         # Answer: built on the structure of partC
         # `answer` is a dictionary with keys set to each split, in this case: 2, 5, 8, 16
-        # Therefore, `answer[k]` is a dictionary with keys: 'scores', 'cv', 'clf`
+        # Therefore, `answer[k]` is a dictionary with the keys: 'scores', 'cv', 'clf`
        
         answer = {}
 
