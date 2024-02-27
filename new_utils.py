@@ -10,85 +10,114 @@
   
      import new_utils as nu
 """
+
 import numpy as np
 from typing import Type, Dict
 from numpy.typing import NDArray
+from sklearn import datasets
+from sklearn.tree import DecisionTreeClassifier
 from sklearn.base import BaseEstimator
 from sklearn.model_selection import (
     cross_validate,
     KFold,
 )
 
-def scale_data(X):
-    #X = X.astype(float)
-    X = (X - X.min()) / (X.max() - X.min())
-    return X
+#1-B
+def scale_data(X_bi = NDArray[np.floating]):
+    # Check if all elements are floating-point numbers and within the range [0, 1]
+    if not issubclass(X_bi.dtype.type, np.floating) or (X_bi < 0).any() or (X_bi > 1).any():
+        return False
 
+    return True
 
-def conf_mat_accuracy(matrix):
-    """
-    Calculate accuracy from a confusion matrix.
-    """
-    TruePositive = matrix[1, 1]  
-    TrueNegative = matrix[0, 0]  
-    total_samples = matrix.sum()
-    accuracy = (TruePositive+ TrueNegative) / total_samples
-    return accuracy
-
-def remove_90_9s(X: NDArray[np.floating], y: NDArray[np.int32]):
- 
-    nine_idx = (y == 9)
-
-    X_90 = X[nine_idx, :]
-    y_90 = y[nine_idx]
-
-    X_90=X_90[:int((X_90.shape[0])*0.1),:]
-    y_90=y_90[:int((y_90.shape[0])*0.1)]
+#1-B
+def scale_data_1(y_bi = NDArray[np.int32]):
+    # Check if the elements in y are integers or not
+    if not issubclass(y_bi.dtype.type, np.int32):
+        return False
     
-    none_nine= (y!=9)
-    X_non_9 = X[none_nine, :]
-    y_non_9 = y[none_nine]
-    
-    fin_X=np.concatenate((X_non_9,X_90),axis=0)
-    fin_y=np.concatenate((y_non_9,y_90),axis=0)
-    
-    return fin_X, fin_y
+    return True
 
+def print_cv_result_dict_test(cv_dict: Dict):
+    for key, array in cv_dict.items():
+        if key not in ['fit_time', 'score_time']:
+            print(f"mean_{key}: {array.mean()}, std_{key}: {array.std()}")
 
-def convert_7_0(X: NDArray[np.floating], y: NDArray[np.int32]):
-   id_7=(y==7)
-   id_0=(y==0)
-   y[id_7]=0
-
-   return X,y
-
-def convert_9_1(X: NDArray[np.floating], y: NDArray[np.int32]):
-   id_9=(y==9)
-   id_1=(y==1)
-   y[id_9]=1
-
-   return X,y
-
-def train_simple_classifier_with_cv(
-    *,
-    Xtrain: NDArray[np.floating],
-    ytrain: NDArray[np.int32],
-    clf: BaseEstimator,
-    cv: KFold = KFold,
-):
+def load_mnist_dataset(
+    nb_samples=None,
+) -> tuple[NDArray[np.floating], NDArray[np.int32]]:
     """
-    Train a simple classifier using k-vold cross-validation.
+    Load the MNIST dataset.
 
-    Parameters:
-        - X: Features dataset.
-        - y: Labels.
-        - cv_class: The cross-validation class to use.
-        - estimator_class: The training classifier class to use.
-        - n_splits: Number of splits for cross-validation.
-        - print_results: Whether to print the results.
+    nb_samples: number of samples to save. Useful for code testing.
+    The homework requires you to use the full dataset.
 
     Returns:
-        - A dictionary with mean and std of accuracy and fit time.
+        X, y
+        #X_train, y_train, X_test, y_test
     """
-    scores = cross_validate(clf, Xtrain, ytrain, cv=cv, scoring='accuracy')
-    return scores
+
+    try:
+        # Are the datasets already loaded?
+        print("... Is MNIST dataset local?")
+        X: NDArray[np.floating] = np.load("mnist_X.npy")
+        y: NDArray[np.int32] = np.load("mnist_y.npy", allow_pickle=True)
+    except Exception as e:
+        # Download the datasets
+        print(f"load_mnist_dataset, exception {e}, Download file")
+        X, y = datasets.fetch_openml(
+            "mnist_784", version=1, return_X_y=True, as_frame=False
+        )
+        X = X.astype(float)
+        y = y.astype(int)
+
+    y = y.astype(np.int32)
+    X: NDArray[np.floating] = X
+    y: NDArray[np.int32] = y
+
+    if nb_samples is not None and nb_samples < X.shape[0]:
+        X = X[0:nb_samples, :]
+        y = y[0:nb_samples]
+
+    print("X.shape: ", X.shape)
+    print("y.shape: ", y.shape)
+    np.save("mnist_X.npy", X)
+    np.save("mnist_y.npy", y)
+    return X, y
+
+def prepare_custom_data(ntrain, ntest, normalize: bool = True):
+    # Check in case the data is already on the computer.
+    X, y = load_mnist_dataset()
+
+    # won't work well unless X is greater or equal to zero
+    if normalize:
+        X = X / X.max()
+
+    y = y.astype(np.int32)
+    Xtrain = X[0:ntrain, :]
+    ytrain = y[0:ntrain]
+    Xtest = X[ntrain:ntrain+ntest]
+    ytest = y[ntrain:ntrain+ntest]
+    return Xtrain, ytrain, Xtest, ytest
+
+def filter_imbalanced_7_9s(X, y):
+    # Filter out only 7s and 9s
+    seven_nine_idx = (y == 7) | (y == 9)
+    X_binary = X[seven_nine_idx]
+    y_binary = y[seven_nine_idx]
+
+    # Convert 7s to 0s and 9s to 1s
+    y_binary = np.where(y_binary == 7, 0, 1)
+
+    # Remove 90% of 9s
+    nines_idx = np.where(y_binary == 1)[0]
+    remove_n = int(len(nines_idx) * 0.9)  # 90% to remove
+    np.random.shuffle(nines_idx)
+    remove_idx = nines_idx[:remove_n]
+
+    # Keep only the desired indices
+    keep_idx = np.setdiff1d(np.arange(len(X_binary)), remove_idx)
+    X_imbalanced = X_binary[keep_idx]
+    y_imbalanced = y_binary[keep_idx]
+
+    return X_imbalanced, y_imbalanced
