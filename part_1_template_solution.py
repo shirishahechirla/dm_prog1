@@ -178,7 +178,7 @@ class Section1:
         cv_dict['std_accuracy']=results['test_score'].std()
         
         answer["scores"] = cv_dict
-        answer["explain_kfold_vs_shuffle_split"] = 'When compared to others kfold Shuffle-Split offers more randomness in the train/test splits and also can provide better generalization errors which especially estimates for the datasets which are having uneven sample distribution'
+        answer["explain_kfold_vs_shuffle_split"] = 'When compared to others kfold Shuffle-Split offers more randomness in the train/test splits and also can provide better generalization errors which especially estimates for the datasets which are having an uneven sample distribution'
         return answer
 
     # ---------------------------------------------------------------------- 
