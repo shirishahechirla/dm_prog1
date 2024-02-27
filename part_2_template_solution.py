@@ -4,7 +4,16 @@
 import numpy as np
 from numpy.typing import NDArray
 from typing import Any
-
+from sklearn.linear_model import LogisticRegression
+from sklearn.tree import DecisionTreeClassifier
+from sklearn.model_selection import (
+    ShuffleSplit,
+    cross_validate,
+    KFold,
+)
+import utils as u
+import new_utils as nu
+from sklearn.metrics import accuracy_score, confusion_matrix
 # ======================================================================
 
 # I could make Section 2 a subclass of Section 1, which would facilitate code reuse.
@@ -69,8 +78,9 @@ class Section2:
         # return values:
         # Xtrain, ytrain, Xtest, ytest: the data used to fill the `answer`` dictionary
 
-        Xtrain = Xtest = np.zeros([1, 1], dtype="float")
-        ytrain = ytest = np.zeros([1], dtype="int")
+
+        Xtrain, ytrain, Xtest, ytest = u.prepare_data()
+        Xtrain = nu.scale_data(Xtrain)
         Xtest = nu.scale_data(Xtest)
         
         answer = {}
@@ -89,7 +99,6 @@ class Section2:
         #ytrain = ytest = np.zeros([1], dtype="int")
 
         return answer, Xtrain, ytrain, Xtest, ytest
-
 
     """
     B.  Repeat part 1.C, 1.D, and 1.F, for the multiclass problem. 
@@ -118,6 +127,7 @@ class Section2:
     ) -> dict[int, dict[str, Any]]:
         """ """
         # Enter your code and fill the `answer`` dictionary
+
         answer = {}
         train_list = ntrain_list
         test_list = ntest_list
@@ -135,6 +145,7 @@ class Section2:
             partC_results=u.train_simple_classifier_with_cv(Xtrain=Xtrain,ytrain=ytrain,
                                               clf=dt_clf,
                                               cv=K_cv)
+
             partC_scores={}
             partC_scores['mean_fit_time']=partC_results['fit_time'].mean()
             partC_scores['std_fit_time']=partC_results['fit_time'].std()
@@ -144,7 +155,9 @@ class Section2:
             partC["scores"] = partC_scores
             partC["clf"] = dt_clf 
             partC["cv"] = K_cv  
-
+            
+            
+    
             partD = {}
             Sh_cv=ShuffleSplit(n_splits=5,random_state=self.seed)
             partD_results=u.train_simple_classifier_with_cv(Xtrain=Xtrain,ytrain=ytrain,
@@ -161,7 +174,10 @@ class Section2:
     
             partD["clf"] = dt_clf
             partD["cv"] = Sh_cv
-
+            
+            
+    
+    
             partF={}
             
             clf_LR=LogisticRegression(random_state=self.seed,max_iter=300)
@@ -191,7 +207,6 @@ class Section2:
             answer[train_val]["ntest"] = test_val
             answer[train_val]["class_count_train"] = list(np.bincount(ytrain))
             answer[train_val]["class_count_test"] = list(np.bincount(ytest))
-
         """
         `answer` is a dictionary with the following keys:
            - 1000, 5000, 10000: each key is the number of training samples
