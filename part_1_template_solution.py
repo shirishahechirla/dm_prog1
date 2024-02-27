@@ -96,12 +96,12 @@ class Section1:
 
         # Enter your code and fill the `answer` dictionary
 
-        answer["length_Xtrain"] = None  # Number of samples
-        answer["length_Xtest"] = None
-        answer["length_ytrain"] = None
-        answer["length_ytest"] = None
-        answer["max_Xtrain"] = None
-        answer["max_Xtest"] = None
+        answer["length_Xtrain"] = len(Xtrain)  # Number of samples
+        answer["length_Xtest"] = len(Xtest)
+        answer["length_ytrain"] = len(ytrain)
+        answer["length_ytest"] = len(ytest)
+        answer["max_Xtrain"] = Xtrain.max()
+        answer["max_Xtest"] = Xtest.max()
         return answer, Xtrain, ytrain, Xtest, ytest
 
     """
@@ -120,12 +120,26 @@ class Section1:
     ):
         # Enter your code and fill the `answer` dictionary
 
+        clf=DecisionTreeClassifier(random_state=self.seed)
+        cv=KFold(n_splits=5,shuffle=True,random_state=self.seed)
+        results=u.train_simple_classifier_with_cv(Xtrain=X,ytrain=y,
+                                          clf=clf, 
+                                          cv=cv)
+
         answer = {}
-        answer["clf"] = None  # the estimator (classifier instance)
-        answer["cv"] = None  # the cross validator instance
+        answer["clf"] = clf  # the estimator (classifier instance)
+        answer["cv"] = cv  # the cross validator instance
         # the dictionary with the scores  (a dictionary with
         # keys: 'mean_fit_time', 'std_fit_time', 'mean_accuracy', 'std_accuracy'.
-        answer["scores"] = None
+        cv_dict={}
+        
+        cv_dict['mean_fit_time']=results['fit_time'].mean()
+        cv_dict['std_fit_time']=results['fit_time'].std()
+        cv_dict['mean_accuracy']=results['test_score'].mean()
+        cv_dict['std_accuracy']=results['test_score'].std()
+        
+        
+        answer["scores"] = cv_dict
         return answer
 
     # ---------------------------------------------------------
@@ -142,12 +156,24 @@ class Section1:
         # Enter your code and fill the `answer` dictionary
 
         # Answer: same structure as partC, except for the key 'explain_kfold_vs_shuffle_split'
+        clf=DecisionTreeClassifier(random_state=self.seed)
+        cv=ShuffleSplit(n_splits=5,random_state=self.seed)
 
+        results=u.train_simple_classifier_with_cv(Xtrain=X,ytrain=y,
+                                          clf=clf,
+                                          cv=cv)        
         answer = {}
-        answer["clf"] = None
-        answer["cv"] = None
-        answer["scores"] = None
-        answer["explain_kfold_vs_shuffle_split"] = None
+        answer["clf"] = clf
+        answer["cv"] = cv
+
+        cv_dict={}
+        cv_dict['mean_fit_time']=results['fit_time'].mean()
+        cv_dict['std_fit_time']=results['fit_time'].std()
+        cv_dict['mean_accuracy']=results['test_score'].mean()
+        cv_dict['std_accuracy']=results['test_score'].std()
+        
+        answer["scores"] = cv_dict
+        answer["explain_kfold_vs_shuffle_split"] = 'Shuffle-Split compared to kfold offers more randomness in train/test splits can provide a better generalization error estimate, especially for datasets with uneven sample distribution'
         return answer
 
     # ----------------------------------------------------------------------
@@ -167,6 +193,24 @@ class Section1:
         # Therefore, `answer[k]` is a dictionary with keys: 'scores', 'cv', 'clf`
 
         answer = {}
+
+        for k in [2,5,8,16]:
+            clf=DecisionTreeClassifier(random_state=self.seed)
+            cv=ShuffleSplit(n_splits=k,random_state=self.seed)
+            results=u.train_simple_classifier_with_cv(Xtrain=X,ytrain=y,
+                                              clf=clf,
+                                              cv=cv)
+
+        cv_dict={}
+        cv_dict['mean_accuracy']=results['test_score'].mean()
+        cv_dict['std_accuracy']=results['test_score'].std()
+        answer[k]={}
+        answer[k]['clf']=clf
+        answer[k]['cv']=cv
+        answer[k]['scores']=cv_dict
+         
+         
+        
 
         # Enter your code, construct the `answer` dictionary, and return it.
 
@@ -193,9 +237,38 @@ class Section1:
         y: NDArray[np.int32],
     ) -> dict[str, Any]:
         """ """
+        clf_RF=RandomForestClassifier(random_state=self.seed)
+        cv=ShuffleSplit(n_splits=5,random_state=self.seed)
+
+        results=u.train_simple_classifier_with_cv(Xtrain=X,ytrain=y,
+                                           clf=clf_RF,
+                                           cv=cv)
+
+        cv_dict={}
+        cv_dict['mean_fit_time']=results['fit_time'].mean()
+        cv_dict['std_fit_time']=results['fit_time'].std()
+        cv_dict['mean_accuracy']=results['test_score'].mean()
+        cv_dict['std_accuracy']=results['test_score'].std()
+
+        part_D=self.partD(X,y)
+                             
 
         answer = {}
 
+        answer["clf_RF"] = clf_RF
+        answer["clf_DT"] = part_D['clf']
+        answer["cv"] = cv
+        answer["scores_RF"] = cv_dict
+        answer["scores_DT"] = part_D['scores']
+
+        if cv_dict['mean_accuracy'] > part_D['scores']['mean_accuracy']:
+            answer["model_highest_accuracy"]='Random Forest'
+        else:
+            answer["model_highest_accuracy"]='Decision Tree'
+            
+        answer["model_lowest_variance"]=min(cv_dict['std_accuracy']**2,part_D['scores']['std_accuracy']**2)
+        
+        answer["model_fastest"]=min(cv_dict['mean_fit_time'], part_D['scores']['mean_fit_time'])
         # Enter your code, construct the `answer` dictionary, and return it.
 
         """
@@ -267,6 +340,56 @@ class Section1:
 
         answer = {}
 
+        clf_rf=RandomForestClassifier(random_state=self.seed)
+        cv=ShuffleSplit(n_splits=5,random_state=self.seed)
+
+        clf_rf.fit(X,y)
+        y_train_pred_orig = clf_rf.predict(X)
+        y_test_pred_orig = clf_rf.predict(Xtest)
+
+        conf_matrix_train_orig = confusion_matrix(y, y_train_pred_orig)
+        conf_matrix_test_orig = confusion_matrix(ytest, y_test_pred_orig)
+
+        accuracy_train_orig = nu.conf_mat_accuracy(conf_matrix_train_orig)
+        accuracy_test_orig = nu.conf_mat_accuracy(conf_matrix_test_orig)
+
+        param_grid = { 'criterion': ['gini', 'entropy'],
+                       'max_depth': [10, 20, 30, None],
+                       'min_samples_split': [2, 5, 10],
+                       'min_samples_leaf': [1, 2, 4],
+                       'max_features': ['sqrt', 'log2', None]
+                     }
+        grid_search = GridSearchCV(estimator=clf_rf, param_grid=param_grid, cv=cv, scoring='accuracy')
+
+        grid_search.fit(X,y)
+
+        best_clf = grid_search.best_estimator_
+        
+        y_train_pred_bst = best_clf.predict(X)
+        y_test_pred_bst = best_clf.predict(Xtest)
+
+        conf_matrix_train_bst = confusion_matrix(y, y_train_pred_bst)
+        conf_matrix_test_bst = confusion_matrix(ytest, y_test_pred_bst)
+
+        accuracy_train_bst = nu.conf_mat_accuracy(conf_matrix_train_bst)
+        accuracy_test_bst = nu.conf_mat_accuracy(conf_matrix_test_bst)
+
+         answer = {
+             "clf": clf_rf,
+             "default_parameters": clf_rf.get_params(),
+             "best_estimator": best_clf,
+             "grid_search": grid_search,
+             "mean_accuracy_cv": grid_search.best_score_,
+             "confusion_matrix_train_orig": conf_matrix_train_orig,
+             "confusion_matrix_train_best": conf_matrix_train_bst,
+             "confusion_matrix_test_orig": conf_matrix_test_orig,
+             "confusion_matrix_test_best": conf_matrix_test_bst,
+             "accuracy_orig_full_training": accuracy_train_orig,
+             "accuracy_best_full_training": accuracy_train_bst,
+             "accuracy_orig_full_testing": accuracy_test_orig,
+             "accuracy_best_full_testing": accuracy_test_bst
+
+        }
         # Enter your code, construct the `answer` dictionary, and return it.
 
         """
